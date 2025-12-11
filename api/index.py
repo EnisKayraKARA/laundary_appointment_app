@@ -6,11 +6,9 @@ import html
 from datetime import datetime, timedelta
 
 app = Flask(__name__, static_folder='../static')
-app.secret_key = 'cok_gizli_bir_anahtar_rastgele_yazabilirsin'  # Session için gerekli
+app.secret_key = 'cok_gizli_bir_anahtar_rastgele_yazabilirsin'
 
-# --- AYARLAR VE VERİTABANI (Memory veya Tmp kullanıyoruz Vercel için) ---
-# Not: Vercel'de kalıcı depolama için PostgreSQL gibi harici veritabanı gerekir.
-# Bu yapı Vercel'de her restartta verileri sıfırlayabilir.
+# --- AYARLAR VE DB YOLLARI ---
 DB_FILE = '/tmp/database.db' if os.path.exists('/tmp') else 'database.db'
 CONFIG_FILE = '/tmp/config.json' if os.path.exists('/tmp') else 'config.json'
 
@@ -24,18 +22,14 @@ DEFAULT_CONFIG = {
 
 def get_config():
     if not os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(DEFAULT_CONFIG, f)
+        with open(CONFIG_FILE, 'w') as f: json.dump(DEFAULT_CONFIG, f)
         return DEFAULT_CONFIG
     try:
-        with open(CONFIG_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return DEFAULT_CONFIG
+        with open(CONFIG_FILE, 'r') as f: return json.load(f)
+    except: return DEFAULT_CONFIG
 
 def save_config_file(new_config):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(new_config, f)
+    with open(CONFIG_FILE, 'w') as f: json.dump(new_config, f)
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -48,10 +42,9 @@ def init_db():
     conn.commit()
     conn.close()
 
-# İlk çalışmada DB oluştur
 init_db()
 
-# --- HTML ŞABLONU (Python içine gömülü) ---
+# --- HTML ŞABLONU ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="tr">
@@ -63,7 +56,6 @@ HTML_TEMPLATE = """
 <style>
     body { margin: 0; padding-top: 80px; font-family: 'Poppins', sans-serif; background-color: #f0f2f5; -webkit-tap-highlight-color: transparent; }
     
-    /* NAVBAR */
     .navbar { 
         position: fixed; top: 0; left: 0; width: 100%; height: 70px; 
         background-color: #ffffff; border-bottom: 2px solid #e1e4e8; 
@@ -77,22 +69,18 @@ HTML_TEMPLATE = """
     .baslik { font-size: 1.3rem; color: #1a1a1a; font-weight: 600; white-space: nowrap; }
     
     .nav-right { display: flex; align-items: center; gap: 15px; }
-    .tarih-gosterge { font-size: 0.9rem; color: #555; font-weight: 600; display: none; } /* Mobilde gizle */
+    .tarih-gosterge { font-size: 0.9rem; color: #555; font-weight: 600; display: none; }
     
     .btn-small { 
         padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; 
         background: #fff; cursor: pointer; font-size: 0.85rem; transition: 0.2s;
         text-decoration: none; color: #333; display: inline-block;
     }
-    .btn-small:hover { background: #f5f5f5; }
     .btn-admin-login { background-color: #333; color: #fff; border: none; }
-    .btn-admin-login:hover { background-color: #555; }
     .btn-logout { background-color: #dc3545; color: #fff; border: none; }
 
-    /* Container */
     .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
     
-    /* Kontrol Paneli */
     .kontrol-paneli { 
         background: white; padding: 15px; border-radius: 12px; 
         box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; 
@@ -100,7 +88,6 @@ HTML_TEMPLATE = """
     }
     .date-picker { padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-family: inherit; }
 
-    /* Tablo */
     .tablo-alani { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
     .makine-sutunu { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .makine-adi { background: #2c3e50; color: white; padding: 12px; text-align: center; font-weight: 600; }
@@ -110,12 +97,12 @@ HTML_TEMPLATE = """
         cursor: pointer; transition: all 0.2s; position: relative; 
     }
     .saat-kutu:hover { background-color: #fafafa; }
+    .saat-kutu:active { background-color: #e0e0e0; }
     
     .bos { border-left: 5px solid #2ecc71; color: #27ae60; }
     .dolu { border-left: 5px solid #e74c3c; color: #c0392b; background-color: #fff5f5; }
     .yetkili-dolu { border-left: 5px solid #3498db; color: #2980b9; background-color: #f0f8ff; }
 
-    /* Modals */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
     .modal-kutu { background: white; padding: 25px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
     
@@ -125,16 +112,12 @@ HTML_TEMPLATE = """
     .btn-primary { background: #3498db; color: white; }
     .btn-danger { background: #e74c3c; color: white; }
     .btn-secondary { background: #95a5a6; color: white; }
-    
-    /* Admin Settings Area */
     .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
     .settings-grid label { font-size: 0.85rem; color: #666; display: block; margin-top: 5px; }
 
     footer { text-align: center; padding: 30px; color: #888; font-size: 0.9rem; }
 
-    @media (min-width: 769px) {
-        .tarih-gosterge { display: block; }
-    }
+    @media (min-width: 769px) { .tarih-gosterge { display: block; } }
     @media (max-width: 768px) {
         .baslik { font-size: 1.1rem; }
         .logo-img { height: 32px; }
@@ -167,12 +150,15 @@ HTML_TEMPLATE = """
             <label style="font-weight:600; margin-right:10px;">Tarih Seç:</label>
             <input type="date" id="tarihSecici" class="date-picker">
         </div>
-        <div id="status-text" style="color:green; font-size:0.9rem;">● Sistem Aktif</div>
+        <div id="status-text" style="color:green; font-size:0.9rem;">
+            {% if session.get('admin_logged_in') %}
+            ● YÖNETİCİ MODU AKTİF
+            {% else %}
+            ● Sistem Çevrimiçi
+            {% endif %}
+        </div>
     </div>
-
-    <div class="tablo-alani" id="anaTablo">
-        <p style="text-align:center; width:100%;">Yükleniyor...</p>
-    </div>
+    <div class="tablo-alani" id="anaTablo"><p style="text-align:center; width:100%;">Yükleniyor...</p></div>
 </div>
 
 <footer>&copy; 2025 Yurt Çamaşırhane Sistemi</footer>
@@ -203,7 +189,6 @@ HTML_TEMPLATE = """
         </div>
         <label>Admin Şifresi (Değiştirmek için)</label>
         <input type="text" id="set-pass">
-        
         <button class="action-btn btn-primary" onclick="saveSettings()">Kaydet</button>
         <button class="action-btn btn-secondary" onclick="closeModal('modal-settings')">Kapat</button>
     </div>
@@ -215,8 +200,8 @@ HTML_TEMPLATE = """
         <p id="modal-desc" style="color:#666; margin-bottom:15px;"></p>
         
         <div id="form-al" style="display:none;">
-            <input type="text" id="inp-isim" placeholder="Adınız Soyadınız">
-            <input type="password" id="inp-sifre" placeholder="Bir Şifre Belirleyin">
+            <input type="text" id="inp-isim" placeholder="Adınız Soyadınız (Zorunlu)">
+            <input type="password" id="inp-sifre" placeholder="PIN Kodu (4-6 hane)" maxlength="6">
             
             <div id="div-guv">
                 <select id="inp-soru">
@@ -228,26 +213,25 @@ HTML_TEMPLATE = """
                 <input type="text" id="inp-cevap" placeholder="Cevabınız">
             </div>
             <button class="action-btn btn-primary" onclick="randevuIslem('al')">Randevu Oluştur</button>
-            {% if session.get('admin_logged_in') %}
-            <button class="action-btn btn-secondary" onclick="randevuIslem('al_admin')">Admin Olarak Al</button>
-            {% endif %}
         </div>
 
         <div id="form-iptal" style="display:none;">
-            <p>Randevuyu silmek için şifre girin:</p>
-            <input type="password" id="inp-iptal-sifre" placeholder="Şifreniz">
-            <button class="action-btn btn-danger" onclick="randevuIslem('sil')">Randevuyu İptal Et</button>
-            
             {% if session.get('admin_logged_in') %}
-            <hr>
-            <button class="action-btn btn-danger" onclick="randevuIslem('sil_admin')">YÖNETİCİ ZORLA SİL</button>
+                <p style="color:red; font-weight:bold;">Yönetici Yetkisi ile Silinecek</p>
+                <button class="action-btn btn-danger" onclick="randevuIslem('sil_admin')">ZORLA SİL (YÖNETİCİ)</button>
             {% else %}
-            <div id="div-recover" style="display:none; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
-                <p id="rec-q" style="font-weight:bold;"></p>
-                <input type="text" id="rec-ans" placeholder="Cevabınız">
-                <button class="action-btn btn-secondary" onclick="randevuIslem('kurtar')">Doğrula ve Sil</button>
-            </div>
-            <button class="action-btn btn-secondary" onclick="showRecover()" id="btn-forgot">Şifremi Unuttum</button>
+                <p>İptal etmek için PIN kodunuzu girin:</p>
+                <input type="password" id="inp-iptal-sifre" placeholder="PIN Kodu" maxlength="6">
+                <button class="action-btn btn-danger" onclick="randevuIslem('sil')">Randevuyu İptal Et</button>
+                <hr style="margin:15px 0; border:0; border-top:1px solid #eee;">
+                
+                <button class="action-btn btn-secondary" onclick="showRecover()" id="btn-forgot">Şifremi Unuttum</button>
+                <div id="div-recover" style="display:none; margin-top:10px;">
+                    <p style="font-size:0.9rem; color:#555;">Güvenlik Sorusu:</p>
+                    <p id="rec-q" style="font-weight:bold; color:#333; margin:5px 0;"></p>
+                    <input type="text" id="rec-ans" placeholder="Cevabınız">
+                    <button class="action-btn btn-secondary" onclick="randevuIslem('kurtar')">Doğrula ve Sil</button>
+                </div>
             {% endif %}
         </div>
 
@@ -281,16 +265,17 @@ HTML_TEMPLATE = """
         .then(r=>r.json())
         .then(data => drawTable(data));
         
-        // Tarih başlığını güncelle
         const d = new Date(seciliTarih);
-        document.getElementById('header-tarih').innerText = d.toLocaleDateString('tr-TR', {weekday:'long', day:'numeric', month:'long'});
+        const dateStr = d.toLocaleDateString('tr-TR', {weekday:'long', day:'numeric', month:'long'});
+        document.getElementById('header-tarih').innerText = dateStr;
+        
+        // Mobilde de görebilmek için document title'a tarih eklenebilir ama opsiyonel
     }
 
     function drawTable(data) {
         const div = document.getElementById('anaTablo');
         div.innerHTML = "";
         
-        // Saatleri oluştur
         let slots = [];
         let bas = config.baslangic_saati * 60;
         let bit = config.bitis_saati * 60;
@@ -315,8 +300,8 @@ HTML_TEMPLATE = """
                 if(info) {
                     css = info.is_admin ? "yetkili-dolu" : "dolu";
                     let name = info.isim;
-                    // Mobilde ismi kısaltabiliriz
-                    text = `<strong>${name}</strong><br><small>${info.is_admin ? 'YÖNETİCİ' : 'Dolu'}</small>`;
+                    let label = info.is_admin ? 'YÖNETİCİ' : 'Dolu';
+                    text = `<strong>${name}</strong><br><small>${label}</small>`;
                     action = `openSlot(${m}, ${idx}, '${saat}', 'dolu', '${name}')`;
                 }
                 col += `<div class="saat-kutu ${css}" onclick="${action}">${text}</div>`;
@@ -340,15 +325,24 @@ HTML_TEMPLATE = """
         document.getElementById('form-iptal').style.display = 'none';
         
         if (type === 'bos') {
-            document.getElementById('modal-title').innerText = "Randevu Al";
+            document.getElementById('modal-title').innerText = isAdmin ? "Yönetici Randevusu" : "Randevu Al";
             document.getElementById('modal-desc').innerText = `${m}. Makine | ${txt}`;
             document.getElementById('form-al').style.display = 'block';
-            document.getElementById('div-guv').style.display = config.guv_sorusu_aktif ? 'block' : 'none';
+            document.getElementById('div-guv').style.display = (config.guv_sorusu_aktif && !isAdmin) ? 'block' : 'none';
+            // Formu temizle
+            document.getElementById('inp-isim').value = "";
+            document.getElementById('inp-sifre').value = "";
+            document.getElementById('inp-cevap').value = "";
         } else {
             document.getElementById('modal-title').innerText = "Detaylar";
             document.getElementById('modal-desc').innerHTML = `<b>${name}</b><br>${m}. Makine | ${txt}`;
             document.getElementById('form-iptal').style.display = 'block';
-            if(!isAdmin) document.getElementById('div-recover').style.display = 'none';
+            // Şifremi unuttum alanını gizle (açılışta)
+            if(!isAdmin) {
+                document.getElementById('div-recover').style.display = 'none';
+                document.getElementById('btn-forgot').style.display = 'block';
+                document.getElementById('inp-iptal-sifre').value = "";
+            }
         }
     }
 
@@ -360,18 +354,25 @@ HTML_TEMPLATE = """
             action: action
         };
 
-        if(action === 'al' || action === 'al_admin') {
-            payload.isim = document.getElementById('inp-isim').value;
-            payload.sifre = document.getElementById('inp-sifre').value;
+        if(action === 'al') {
+            let isim = document.getElementById('inp-isim').value;
+            let sifre = document.getElementById('inp-sifre').value;
+            
+            if(!isim || isim.trim().length < 3) return alert("Lütfen geçerli bir isim girin.");
+            if(!sifre || sifre.length < 4 || sifre.length > 6) return alert("PIN Kodu 4 ile 6 hane arasında olmalı!");
+            
+            payload.isim = isim;
+            payload.sifre = sifre;
             payload.soru = document.getElementById('inp-soru').value;
             payload.cevap = document.getElementById('inp-cevap').value;
-            payload.admin_mode = (action === 'al_admin');
         } else if (action === 'sil') {
-            payload.sifre = document.getElementById('inp-iptal-sifre').value;
-        } else if (action === 'sil_admin') {
-            payload.admin_mode = true;
+            let sifre = document.getElementById('inp-iptal-sifre').value;
+            if(!sifre) return alert("Şifre girin");
+            payload.sifre = sifre;
         } else if (action === 'kurtar') {
-            payload.cevap = document.getElementById('rec-ans').value;
+            let cvp = document.getElementById('rec-ans').value;
+            if(!cvp) return alert("Cevap girin");
+            payload.cevap = cvp;
         }
 
         fetch('/api/islem', {
@@ -385,6 +386,19 @@ HTML_TEMPLATE = """
                 loadData();
             } else {
                 alert("Hata: " + d.message);
+            }
+        });
+    }
+
+    function showRecover() {
+        fetch(`/api/get_question?tarih=${seciliTarih}&makine=${selectedSlot.m}&saat=${selectedSlot.s}`)
+        .then(r=>r.json()).then(d => {
+            if(d.success) {
+                document.getElementById('div-recover').style.display = 'block';
+                document.getElementById('rec-q').innerText = d.soru;
+                document.getElementById('btn-forgot').style.display = 'none';
+            } else {
+                alert("Bu kayıt için güvenlik sorusu bulunamadı (veya yönetici kaydı).");
             }
         });
     }
@@ -407,7 +421,6 @@ HTML_TEMPLATE = """
     // --- SETTINGS ---
     function openSettings() {
         document.getElementById('modal-settings').style.display = 'flex';
-        // Fill Values
         document.getElementById('set-gunluk').value = config.gunluk_limit;
         document.getElementById('set-haftalik').value = config.haftalik_limit;
         document.getElementById('set-aylik').value = config.aylik_limit;
@@ -431,7 +444,6 @@ HTML_TEMPLATE = """
             admin_sifresi: document.getElementById('set-pass').value,
             guv_sorusu_aktif: document.getElementById('set-guv').value === "1"
         };
-        
         fetch('/api/update_settings', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -442,28 +454,11 @@ HTML_TEMPLATE = """
         });
     }
 
-    // --- RECOVER ---
-    function showRecover() {
-        // Soruyu çek
-        fetch(`/api/get_question?tarih=${seciliTarih}&makine=${selectedSlot.m}&saat=${selectedSlot.s}`)
-        .then(r=>r.json()).then(d => {
-            if(d.success) {
-                document.getElementById('div-recover').style.display = 'block';
-                document.getElementById('rec-q').innerText = d.soru;
-                document.getElementById('btn-forgot').style.display = 'none';
-            } else {
-                alert("Bu kayıt için güvenlik sorusu bulunamadı.");
-            }
-        });
-    }
-
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 </script>
 </body>
 </html>
 """
-
-# --- ROUTE HANDLERS ---
 
 @app.route('/')
 def index():
@@ -485,8 +480,6 @@ def api_get_randevular():
     res = {}
     for row in data:
         key = f"m{row[0]}_s{row[1]}"
-        # İsim gizliliği: Sadece baş harfler veya adminse tam isim
-        # Burada basitçe html escape yapıp gönderiyoruz
         res[key] = {"isim": html.escape(row[2]), "is_admin": row[3]}
     return jsonify(res)
 
@@ -499,62 +492,73 @@ def api_islem():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    # --- EKLEME ---
-    if action == 'al' or action == 'al_admin':
-        # Tarih Kontrol
+    if action == 'al':
+        # Validasyonlar
+        if not data.get('isim') or len(data['isim'].strip()) < 3:
+            return jsonify({"success": False, "message": "İsim en az 3 karakter olmalı."})
+        
+        sifre = data.get('sifre', '')
+        if len(sifre) < 4 or len(sifre) > 6:
+            return jsonify({"success": False, "message": "PIN kodu 4-6 hane olmalı."})
+
+        # Tarih ve Limit Kontrol (Kısaltıldı)
         try:
             req_date = datetime.strptime(data['tarih'], "%Y-%m-%d").date()
             if req_date < datetime.now().date():
                 return jsonify({"success": False, "message": "Geçmişe randevu alınamaz."})
-            if config['max_ileri_gun'] > 0:
-                if req_date > datetime.now().date() + timedelta(days=config['max_ileri_gun']):
+            # Admin logged in ise limit kontrolü yapma
+            if not session.get('admin_logged_in'):
+                if config['max_ileri_gun'] > 0 and req_date > datetime.now().date() + timedelta(days=config['max_ileri_gun']):
                     return jsonify({"success": False, "message": "Çok ileri tarih."})
+                
+                c.execute("SELECT count(*) FROM randevular WHERE isim=? AND tarih=?", (data['isim'].strip(), data['tarih']))
+                if config['gunluk_limit'] > 0 and c.fetchone()[0] >= config['gunluk_limit']:
+                    return jsonify({"success": False, "message": "Günlük limit doldu."})
         except: return jsonify({"success": False, "message": "Tarih hatası."})
 
-        # Limit Kontrol (Sadece normal kullanıcı)
-        if not data.get('admin_mode'):
-            # (Basit limit kontrolü, detaylısı önceki kodda vardı, buraya kısalttım)
-            c.execute("SELECT count(*) FROM randevular WHERE isim=? AND tarih=?", (data['isim'].strip(), data['tarih']))
-            count = c.fetchone()[0]
-            if config['gunluk_limit'] > 0 and count >= config['gunluk_limit']:
-                return jsonify({"success": False, "message": "Günlük limit doldu."})
-
         try:
+            is_admin = 1 if session.get('admin_logged_in') else 0
             c.execute("INSERT INTO randevular VALUES (?,?,?,?,?,?,?,?)", 
-                      (data['tarih'], data['makine'], data['saat'], 
+                      (data['tarih'], int(data['makine']), int(data['saat']), 
                        data['isim'].strip(), data['sifre'], 
-                       data.get('soru'), data.get('cevap', '').lower(), 
-                       1 if data.get('admin_mode') else 0))
+                       data.get('soru'), data.get('cevap', '').lower(), is_admin))
             conn.commit()
             return jsonify({"success": True})
         except sqlite3.IntegrityError:
             return jsonify({"success": False, "message": "Dolu!"})
-        finally:
-            conn.close()
+        finally: conn.close()
 
-    # --- SİLME ---
     elif action == 'sil':
-        c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat=? AND sifre=?", 
-                  (data['tarih'], data['makine'], data['saat'], data['sifre']))
-        conn.commit()
-        success = c.rowcount > 0
+        # İPTAL İÇİN ŞİFRE KONTROLÜ
+        # Önce kaydı bulalım
+        c.execute("SELECT sifre FROM randevular WHERE tarih=? AND makine=? AND saat_index=?", 
+                  (data['tarih'], int(data['makine']), int(data['saat'])))
+        record = c.fetchone()
+        
+        if record and record[0] == data.get('sifre'):
+            c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat_index=?", 
+                      (data['tarih'], int(data['makine']), int(data['saat'])))
+            conn.commit()
+            success = True
+            msg = "Silindi"
+        else:
+            success = False
+            msg = "Şifre Hatalı"
+        
         conn.close()
-        return jsonify({"success": success, "message": "Şifre hatalı" if not success else "Silindi"})
+        return jsonify({"success": success, "message": msg})
 
-    # --- ADMIN SİLME ---
     elif action == 'sil_admin':
-        if not session.get('admin_logged_in'):
-            return jsonify({"success": False, "message": "Yetkisiz"})
-        c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat=?", 
-                  (data['tarih'], data['makine'], data['saat']))
+        if not session.get('admin_logged_in'): return jsonify({"success": False, "message": "Yetkisiz"})
+        c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat_index=?", 
+                  (data['tarih'], int(data['makine']), int(data['saat'])))
         conn.commit()
         conn.close()
         return jsonify({"success": True})
 
-    # --- KURTARMA ---
     elif action == 'kurtar':
-        c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat=? AND guvenlik_cevabi=?",
-                  (data['tarih'], data['makine'], data['saat'], data['cevap'].lower()))
+        c.execute("DELETE FROM randevular WHERE tarih=? AND makine=? AND saat_index=? AND guvenlik_cevabi=?",
+                  (data['tarih'], int(data['makine']), int(data['saat']), data['cevap'].lower()))
         conn.commit()
         success = c.rowcount > 0
         conn.close()
@@ -570,9 +574,8 @@ def api_get_question():
               (request.args.get('tarih'), request.args.get('makine'), request.args.get('saat')))
     r = c.fetchone()
     conn.close()
-    return jsonify({"success": True, "soru": r[0]}) if r else jsonify({"success": False})
+    return jsonify({"success": True, "soru": r[0]}) if r and r[0] else jsonify({"success": False})
 
-# --- ADMIN AUTH ---
 @app.route('/api/login', methods=['POST'])
 def api_login():
     conf = get_config()
@@ -588,11 +591,9 @@ def api_logout():
 
 @app.route('/api/update_settings', methods=['POST'])
 def api_update_settings():
-    if not session.get('admin_logged_in'):
-        return jsonify({"success": False})
+    if not session.get('admin_logged_in'): return jsonify({"success": False})
     save_config_file(request.json)
     return jsonify({"success": True})
 
-# Vercel entry point
 if __name__ == '__main__':
     app.run(debug=True)
