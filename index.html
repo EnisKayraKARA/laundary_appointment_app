@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sistem</title>
+<style>
+    body { margin: 0; padding-top: 80px; font-family: 'Segoe UI', sans-serif; background-color: #f4f6f8; -webkit-tap-highlight-color: transparent; }
+    
+    /* NAVBAR */
+    .navbar { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 70px; 
+        background-color: #fff; border-bottom: 3px solid #007bff; 
+        display: flex; justify-content: space-between; align-items: center; 
+        padding: 0 30px; box-sizing: border-box; z-index: 100; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+    }
+    
+    .baslik { font-size: 1.4rem; color: #333; font-weight: bold; white-space: nowrap; }
+    
+    .nav-right { display: flex; align-items: center; gap: 10px; }
+    
+    .tarih-gosterge { 
+        font-weight: bold; color: #007bff; text-transform: capitalize; 
+        font-size: 0.95rem; white-space: nowrap; 
+    }
+    
+    .lang-btn { 
+        cursor: pointer; font-weight: bold; color: #555; 
+        border: 1px solid #ccc; padding: 5px 10px; border-radius: 5px; 
+        background: #f9f9f9; font-size: 0.85rem; white-space: nowrap;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .kontrol-paneli { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 30px; text-align: center; }
+    .tablo-alani { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .makine-sutunu { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .makine-adi { background: #2c3e50; color: white; padding: 15px; text-align: center; font-weight: bold; }
+    .saat-kutu { padding: 15px; text-align: center; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; position: relative; }
+    .saat-kutu:active { background-color: #ddd; }
+    .bos { background-color: #e8f5e9; color: #2e7d32; border-left: 5px solid #2e7d32; }
+    .dolu { background-color: #ffebee; color: #c62828; border-left: 5px solid #c62828; }
+    .yetkili-dolu { background-color: #e3f2fd; color: #0d47a1; border-left: 5px solid #0d47a1; } 
+    
+    /* MODAL */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
+    .modal-kutu { background: white; padding: 25px; border-radius: 10px; width: 350px; text-align: center; position: relative; max-height: 90vh; overflow-y: auto; }
+    .kapat { position: absolute; right: 15px; top: 10px; font-size: 30px; cursor: pointer; padding: 5px; line-height: 20px; }
+    input, select { width: 100%; padding: 12px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; } 
+    button { width: 100%; padding: 12px; margin-top: 5px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+    .btn-kaydet { background: #007bff; color: white; }
+    .btn-yetkili { background: #6c757d; color: white; margin-top: 10px; font-size: 13px; padding: 8px; }
+    .btn-iptal { background: #dc3545; color: white; }
+    .btn-unuttum { background: none; color: #007bff; text-decoration: underline; font-weight: normal; margin-top: 15px; font-size: 14px; }
+    .uyari { color: red; font-size: 13px; margin-top: 10px; }
+    footer { text-align: center; padding: 20px; font-size: 12px; color: #999; margin-top: 20px; }
+    
+    @media (max-width: 768px) {
+        .navbar { padding: 0 10px; height: 60px; }
+        .baslik { font-size: 1.1rem; }
+        .tarih-gosterge { font-size: 0.8rem; }
+        .lang-btn { font-size: 0.8rem; padding: 4px 6px; margin-left: 5px; }
+        .nav-right { gap: 5px; }
+        body { padding-top: 70px; }
+        .container { padding: 10px; }
+        .tablo-alani { grid-template-columns: 1fr; gap: 15px; }
+        .modal-kutu { width: 90%; padding: 20px; }
+    }
+</style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="baslik" id="txt-baslik">Çamaşırhane</div>
+        <div class="nav-right">
+            <div class="tarih-gosterge" id="header-tarih"></div>
+            <button class="lang-btn" onclick="toggleLang()">TR | EN</button>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="kontrol-paneli">
+            <input type="date" id="tarihSecici">
+            <span style="font-size:12px; color:green; display:block; margin-top:5px;" id="txt-durum">● Sistem Çevrimiçi</span>
+        </div>
+        <div class="tablo-alani" id="anaTablo"><p style="text-align:center;">Yükleniyor...</p></div>
+    </div>
+    <footer>&copy; 2025 Çamaşırhane Sistemi</footer>
+    
+    <div class="modal" id="modal">
+        <div class="modal-kutu">
+            <span class="kapat" onclick="modalKapat()">&times;</span>
+            <h3 id="m-baslik"></h3>
+            <p id="m-bilgi" style="margin-bottom:20px; color:#555;"></p>
+            <div id="form-al" style="display:none;">
+                <input type="text" id="inp-isim" placeholder="Adınız Soyadınız">
+                <input type="password" id="inp-sifre" placeholder="Şifreniz" maxlength="20">
+                <div id="div-guvenlik-sorusu">
+                    <p style="text-align:left; font-size:13px; margin:5px 0; color:#666;" id="txt-guv-sorusu">Güvenlik Sorusu:</p>
+                    <select id="inp-soru">
+                        <option value="q1" id="op-q1">İlkokul öğretmeninizin adı?</option>
+                        <option value="q2" id="op-q2">Hangi şehirde doğdunuz?</option>
+                        <option value="q3" id="op-q3">En sevdiğiniz yemek?</option>
+                        <option value="q4" id="op-q4">Tuttuğunuz takım?</option>
+                    </select>
+                    <input type="text" id="inp-cevap" placeholder="Cevabınız">
+                </div>
+                <button class="btn-kaydet" onclick="islemYap('kaydet')" id="btn-al">Randevu Al</button>
+                <button class="btn-yetkili" onclick="islemYap('kaydet_admin')" id="btn-al-admin">Yetkili Olarak Al</button>
+            </div>
+            <div id="form-iptal" style="display:none;">
+                <p style="margin-bottom:10px;" id="txt-iptal-bilgi">İptal etmek için şifrenizi girin:</p>
+                <input type="password" id="inp-iptal-sifre" placeholder="Şifreniz" maxlength="20">
+                <button class="btn-iptal" onclick="islemYap('sil')" id="btn-iptal">İptal Et</button>
+                <button class="btn-yetkili" onclick="islemYap('sil_admin')" id="btn-iptal-admin">Yetkili İptali (Zorla Sil)</button>
+                <button class="btn-unuttum" id="btn-unuttum" onclick="sifremiUnuttum()">Şifremi Unuttum</button>
+            </div>
+            <div id="form-kurtar" style="display:none;">
+                <p style="font-size:14px; color:#333;" id="txt-soru-lbl">Soru:</p>
+                <p id="soru-text" style="font-weight:bold; font-size:16px; margin:10px 0;"></p>
+                <input type="text" id="inp-kurtar-cevap" placeholder="Cevabınız">
+                <button class="btn-iptal" onclick="islemYap('kurtar')" id="btn-dogrula">Doğrula ve Sil</button>
+                <button class="btn-unuttum" onclick="modalAc(seciliMakine, seciliSaatIndex, seciliSaatMetni, 'dolu')" id="btn-geri">Geri Dön</button>
+            </div>
+            <p class="uyari" id="uyari"></p>
+        </div>
+    </div>
+
+<script>
+    let config = {};
+    let seciliTarih = new Date().toISOString().split('T')[0];
+    let mevcutKayitlar = {};
+    let seciliMakine, seciliSaatIndex, seciliSaatMetni;
+    let modalAktif = false;
+    let curLang = localStorage.getItem('site_lang') || 'tr';
+
+    const dict = {
+        tr: {
+            title: "Çamaşırhane", online: "● Sistem Çevrimiçi", machine: ". Makine",
+            avail: "Müsait", full: "Dolu", auth: "YETKİLİ",
+            modal_add: "Randevu Al", modal_det: "Detaylar",
+            ph_name: "Adınız Soyadınız", ph_pass: "Şifreniz", ph_ans: "Cevabınız",
+            lbl_sec: "Güvenlik Sorusu (Şifremi Unuttum):",
+            q1: "İlkokul öğretmeninizin adı?", q2: "Hangi şehirde doğdunuz?", 
+            q3: "En sevdiğiniz yemek?", q4: "Tuttuğunuz takım?",
+            btn_add: "Randevu Al", btn_add_adm: "Yetkili Olarak Al",
+            lbl_cancel: "İptal etmek için şifrenizi girin:",
+            btn_cancel: "İptal Et", btn_cancel_adm: "Yetkili İptali",
+            btn_forgot: "Şifremi Unuttum", lbl_q: "Soru:",
+            btn_verify: "Doğrula ve Sil", btn_back: "Geri Dön",
+            err_fill: "Eksik bilgi girdiniz!", err_ans: "Güvenlik cevabı zorunludur!",
+            ok: "İşlem başarıyla tamamlandı.", con_err: "Bağlantı hatası!",
+            codes: {
+                "SLOT_FULL": "Bu saat dolu!", "LIMIT_DAY": "Günlük limit doldu!",
+                "LIMIT_WEEK": "Haftalık limit doldu!", "LIMIT_MONTH": "Aylık limit doldu!",
+                "PAST_DATE": "Geçmiş tarihe işlem yapılamaz!", "PASS_ERROR": "Şifre hatalı!",
+                "ADMIN_PASS_ERROR": "Yetkili şifresi yanlış!", "DELETE_SUCCESS": "Randevu silindi.",
+                "SEC_ANSWER_WRONG": "Cevap yanlış!", "NO_QUESTION": "Soru bulunamadı.",
+                "DATE_TOO_FAR": "Bu kadar ileri tarihe randevu alamazsınız!",
+                "NAME_TOO_LONG": "İsim çok uzun (Maks 30 karakter)", "INVALID_MACHINE": "Geçersiz makine",
+                "DATE_ERROR": "Tarih hatası!", "DB_ERROR": "Veritabanı hatası!"
+            }
+        },
+        en: {
+            title: "Laundry System", online: "● System Online", machine: ". Machine",
+            avail: "Available", full: "Full", auth: "ADMIN",
+            modal_add: "Book Appointment", modal_det: "Details",
+            ph_name: "Full Name", ph_pass: "Password", ph_ans: "Answer",
+            lbl_sec: "Security Question (Forgot Password):",
+            q1: "Name of primary school teacher?", q2: "City you were born in?", 
+            q3: "Favorite food?", q4: "Favorite team?",
+            btn_add: "Book Now", btn_add_adm: "Book as Admin",
+            lbl_cancel: "Enter password to cancel:",
+            btn_cancel: "Cancel Booking", btn_cancel_adm: "Force Cancel (Admin)",
+            btn_forgot: "Forgot Password", lbl_q: "Question:",
+            btn_verify: "Verify & Delete", btn_back: "Go Back",
+            err_fill: "Missing information!", err_ans: "Answer required!",
+            ok: "Operation successful.", con_err: "Connection error!",
+            codes: {
+                "SLOT_FULL": "Time slot is full!", "LIMIT_DAY": "Daily limit reached!",
+                "LIMIT_WEEK": "Weekly limit reached!", "LIMIT_MONTH": "Monthly limit reached!",
+                "PAST_DATE": "Cannot book past dates!", "PASS_ERROR": "Wrong password!",
+                "ADMIN_PASS_ERROR": "Wrong admin password!", "DELETE_SUCCESS": "Deleted successfully.",
+                "SEC_ANSWER_WRONG": "Wrong answer!", "NO_QUESTION": "No question found.",
+                "DATE_TOO_FAR": "Cannot book this far in advance!",
+                "NAME_TOO_LONG": "Name too long (Max 30 chars)", "INVALID_MACHINE": "Invalid machine",
+                "DATE_ERROR": "Date error!", "DB_ERROR": "Database error!"
+            }
+        }
+    };
+
+    const questionMap = {
+        "İlkokul öğretmeninizin adı?": "q1", "Ilkokul ogretmeninizin adi?": "q1",
+        "Hangi şehirde doğdunuz?": "q2", "Hangi sehirde dogdunuz?": "q2",
+        "En sevdiğiniz yemek?": "q3", "En sevdiginiz yemek?": "q3",
+        "Tuttuğunuz takım?": "q4", "Tuttugunuz takim?": "q4"
+    };
+
+    function t(key) { return dict[curLang][key] || key; }
+    function tc(code) { return dict[curLang].codes[code] || code; }
+
+    function toggleLang() {
+        curLang = curLang === 'tr' ? 'en' : 'tr';
+        localStorage.setItem('site_lang', curLang);
+        applyLang();
+        tarihiGuncelle(seciliTarih);
+        ciz(); 
+    }
+
+    function applyLang() {
+        document.getElementById('txt-baslik').innerText = t('title');
+        document.getElementById('txt-durum').innerText = t('online');
+        document.getElementById('m-baslik').innerText = modalAktif ? (document.getElementById('form-al').style.display === 'block' ? t('modal_add') : t('modal_det')) : "";
+        document.getElementById('inp-isim').placeholder = t('ph_name');
+        document.getElementById('inp-sifre').placeholder = t('ph_pass');
+        document.getElementById('inp-iptal-sifre').placeholder = t('ph_pass');
+        document.getElementById('inp-cevap').placeholder = t('ph_ans');
+        document.getElementById('inp-kurtar-cevap').placeholder = t('ph_ans');
+        document.getElementById('txt-guv-sorusu').innerText = t('lbl_sec');
+        document.getElementById('op-q1').innerText = t('q1');
+        document.getElementById('op-q2').innerText = t('q2');
+        document.getElementById('op-q3').innerText = t('q3');
+        document.getElementById('op-q4').innerText = t('q4');
+        document.getElementById('btn-al').innerText = t('btn_add');
+        document.getElementById('btn-al-admin').innerText = t('btn_add_adm');
+        document.getElementById('txt-iptal-bilgi').innerText = t('lbl_cancel');
+        document.getElementById('btn-iptal').innerText = t('btn_cancel');
+        document.getElementById('btn-iptal-admin').innerText = t('btn_cancel_adm');
+        document.getElementById('btn-unuttum').innerText = t('btn_forgot');
+        document.getElementById('txt-soru-lbl').innerText = t('lbl_q');
+        document.getElementById('btn-dogrula').innerText = t('btn_verify');
+        document.getElementById('btn-geri').innerText = t('btn_back');
+    }
+
+    window.onload = () => {
+        document.getElementById('tarihSecici').value = seciliTarih;
+        applyLang();
+        tarihiGuncelle(seciliTarih);
+        fetch('/get_settings?t='+Date.now()).then(r=>r.json()).then(d => { config = d; baslat(); });
+    };
+
+    function baslat() {
+        verileriCek();
+        setInterval(() => { if(!modalAktif) verileriCek(); }, 2000);
+    }
+
+    document.getElementById('tarihSecici').addEventListener('change', (e) => {
+        seciliTarih = e.target.value;
+        tarihiGuncelle(seciliTarih);
+        verileriCek();
+    });
+
+    // TARİH GÜNCELLEME (Mobil Kontrollü)
+    function tarihiGuncelle(tarihStr) {
+        const tarih = new Date(tarihStr);
+        const isMobile = window.innerWidth <= 768;
+        
+        let options;
+        if (isMobile) {
+            // Mobilde Kısa Gün Adı Eklendi: "Çar, 10 Ara 2025"
+            options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+        } else {
+            // PC: Uzun Format
+            options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        }
+
+        const locale = curLang === 'en' ? 'en-US' : 'tr-TR';
+        document.getElementById('header-tarih').innerText = tarih.toLocaleDateString(locale, options);
+    }
+    
+    // Ekran boyutu değişirse tarihi yeniden formatla
+    window.addEventListener('resize', () => tarihiGuncelle(seciliTarih));
+
+    function verileriCek() {
+        fetch(`/get_randevular?tarih=${seciliTarih}&t=${Date.now()}`)
+        .then(r=>r.json())
+        .then(d => { mevcutKayitlar = d; ciz(); })
+        .catch(e => console.log(e));
+    }
+    function escapeHtml(text) {
+        if(!text) return text;
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+    function ciz() {
+        const div = document.getElementById('anaTablo');
+        div.innerHTML = "";
+        const saatler = saatleriOlustur();
+        for(let m=1; m<=4; m++) {
+            let html = `<div class="makine-sutunu"><div class="makine-adi">${m}${t('machine')}</div>`;
+            saatler.forEach((saat, idx) => {
+                let data = mevcutKayitlar[`m${m}_s${idx}`];
+                let css = "bos";
+                let text = `<strong>${saat}</strong><br><small>${t('avail')}</small>`;
+                let tiklama = `onclick="modalAc(${m}, ${idx}, '${saat}', 'bos')"`;
+                if(data) {
+                    css = data.is_admin ? "yetkili-dolu" : "dolu";
+                    let etiket = data.is_admin ? t('auth') : t('full');
+                    text = `<strong>${escapeHtml(data.isim)}</strong><br><small>${etiket}</small>`;
+                    tiklama = `onclick="modalAc(${m}, ${idx}, '${saat}', 'dolu', '${escapeHtml(data.isim)}')"`;
+                }
+                html += `<div class="saat-kutu ${css}" ${tiklama}>${text}</div>`;
+            });
+            html += "</div>";
+            div.innerHTML += html;
+        }
+    }
+    function modalAc(m, s, text, tip, isim="") {
+        modalAktif = true;
+        seciliMakine = m; seciliSaatIndex = s; seciliSaatMetni = text;
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('uyari').innerText = "";
+        ['form-al', 'form-iptal', 'form-kurtar'].forEach(id => document.getElementById(id).style.display='none');
+        const guvAktif = config.guv_sorusu_aktif;
+        document.getElementById('m-baslik').innerText = (tip === 'bos') ? t('modal_add') : t('modal_det');
+        if(tip === 'bos') {
+            document.getElementById('m-bilgi').innerHTML = `${m}${t('machine')} - ${text}`;
+            document.getElementById('form-al').style.display = 'block';
+            document.getElementById('inp-isim').value = "";
+            document.getElementById('inp-sifre').value = "";
+            document.getElementById('div-guvenlik-sorusu').style.display = guvAktif ? 'block' : 'none';
+            document.getElementById('inp-cevap').value = "";
+        } else {
+            document.getElementById('m-bilgi').innerHTML = `<b>${isim}</b><br>${m}${t('machine')} | ${text}`;
+            document.getElementById('form-iptal').style.display = 'block';
+            document.getElementById('inp-iptal-sifre').value = "";
+            document.getElementById('btn-unuttum').style.display = guvAktif ? 'inline-block' : 'none';
+        }
+    }
+    function sifremiUnuttum() {
+        fetch(`/get_security_question?tarih=${seciliTarih}&makine=${seciliMakine}&saat=${seciliSaatIndex}&t=${Date.now()}`)
+            .then(r=>r.json())
+            .then(d => {
+                if(d.success) {
+                    document.getElementById('form-iptal').style.display = 'none';
+                    document.getElementById('form-kurtar').style.display = 'block';
+                    let soruKey = questionMap[d.soru];
+                    let gosterilecekSoru = soruKey ? t(soruKey) : d.soru;
+                    document.getElementById('soru-text').innerText = gosterilecekSoru;
+                    document.getElementById('inp-kurtar-cevap').value = "";
+                } else {
+                    document.getElementById('uyari').innerText = tc(d.code);
+                }
+            });
+    }
+    function islemYap(tur) {
+        let veri = { tarih: seciliTarih, makine: seciliMakine, saat: seciliSaatIndex };
+        let url = "";
+        let guvAktif = config.guv_sorusu_aktif;
+        if(tur === 'kaydet' || tur === 'kaydet_admin') {
+            let isim = document.getElementById('inp-isim').value.trim();
+            let sifre = document.getElementById('inp-sifre').value.trim();
+            let soruEl = document.getElementById('inp-soru');
+            let soru = soruEl.options[soruEl.selectedIndex].text; 
+            let cevap = document.getElementById('inp-cevap').value.trim();
+            if(!isim || !sifre) return alert(t('err_fill'));
+            if(guvAktif && tur !== 'kaydet_admin' && !cevap) return alert(t('err_ans'));
+            veri.isim = isim; veri.sifre = sifre;
+            veri.guvenlik_sorusu = guvAktif ? soru : "";
+            veri.guvenlik_cevabi = guvAktif ? cevap : "";
+            veri.admin_mode = (tur === 'kaydet_admin');
+            url = "/add_randevu";
+        } 
+        else if(tur === 'sil' || tur === 'sil_admin') {
+            veri.sifre = document.getElementById('inp-iptal-sifre').value.trim();
+            veri.admin_mode = (tur === 'sil_admin');
+            url = "/delete_randevu";
+        }
+        else if(tur === 'kurtar') {
+            veri.cevap = document.getElementById('inp-kurtar-cevap').value.trim();
+            url = "/recover_randevu";
+        }
+        fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(veri) })
+        .then(r=>r.json()).then(d => {
+            if(d.success) { modalKapat(); verileriCek(); alert(t('ok')); }
+            else { document.getElementById('uyari').innerText = tc(d.code) || d.message; }
+        })
+        .catch(e => alert(t('con_err')));
+    }
+    function modalKapat() { document.getElementById('modal').style.display = 'none'; modalAktif = false; }
+    function saatleriOlustur() {
+        let arr = [];
+        let bas = config.baslangic_saati * 60;
+        let bit = config.bitis_saati * 60;
+        if (bit <= bas) bit += 1440;
+        let cur = bas;
+        while(cur + config.seans_suresi <= bit) {
+            let s1 = formatSaat(cur);
+            let s2 = formatSaat(cur + config.seans_suresi);
+            arr.push(`${s1} - ${s2}`);
+            cur += config.seans_suresi;
+        }
+        return arr;
+    }
+    function formatSaat(d) {
+        if(d >= 1440) d -= 1440;
+        let saat = Math.floor(d / 60);
+        let dakika = Math.round(d % 60);
+        return `${saat.toString().padStart(2,'0')}:${dakika.toString().padStart(2,'0')}`;
+    }
+</script>
+</body>
+</html>
